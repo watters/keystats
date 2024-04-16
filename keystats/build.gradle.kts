@@ -11,6 +11,15 @@ kotlin {
             }
         }
     }
+//    macosArm64 {
+//        macosX64 {
+//            binaries {
+//                executable {
+//                    entryPoint = "io.watters.keystats.main"
+//                }
+//            }
+//        }
+//    }
     sourceSets {
         all {
             languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")

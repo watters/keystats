@@ -15,7 +15,8 @@ fun main() {
     // TODO: figure out how to generate the correct mask for just the events we want
     // val eventMask = kCGEventKeyDown or kCGEventFlagsChanged
     val eventMask = kCGEventMaskForAllEvents
-    println("eventMask: $eventMask (${eventMask.convert<ULong>()})")
+
+    val stats = ActionStats()
 
     // https://developer.apple.com/documentation/coregraphics/1454426-cgeventtapcreate
     val eventTap = CGEventTapCreate(
@@ -24,7 +25,7 @@ fun main() {
         0.convert(),
         eventMask.convert(),
         staticCFunction(::callback),
-        null
+        StableRef.create(stats).asCPointer()
     )
 
     if (eventTap == null) {
@@ -46,6 +47,7 @@ fun main() {
 
 // https://developer.apple.com/documentation/coregraphics/cgeventtapcallback
 @OptIn(ExperimentalNativeApi::class)
+@Suppress("UNUSED_PARAMETER")
 fun callback(
     proxy: CGEventTapProxy?,
     type: CGEventType,
@@ -53,7 +55,6 @@ fun callback(
     refcon: COpaquePointer?,
 ): CGEventRef? {
     if (type == kCGEventKeyDown || type == kCGEventFlagsChanged) {
-        println("eventType: $type")
 
         val flags = CGEventGetFlags(event)
 
@@ -62,9 +63,11 @@ fun callback(
         val keyboardType =
             CGEventGetIntegerValueField(event, kCGKeyboardEventKeyboardType)
 
-        memScoped {
-            var actualStringLength = alloc<UniCharCountVar>()
-            var unicodeString = alloc<UniCharVar>()
+        val stats: ActionStats? = refcon?.asStableRef<ActionStats>()?.get()
+
+        val action = memScoped {
+            val actualStringLength = alloc<UniCharCountVar>()
+            val unicodeString = alloc<UniCharVar>()
 
             CGEventKeyboardGetUnicodeString(
                 event = event,
@@ -72,15 +75,15 @@ fun callback(
                 actualStringLength = actualStringLength.ptr,
                 unicodeString = unicodeString.ptr,
             )
-            val action = KeyboardAction(
+            KeyboardAction(
                 keyCode = keyCode,
                 keyboardType = keyboardType,
                 modifiers = flags,
                 unicodeString = Char.toChars(unicodeString.value.convert())
                     .concatToString()
             )
-            println(action)
         }
+        stats?.recordAction(action)
     }
 
     return event
@@ -92,3 +95,18 @@ private data class KeyboardAction(
     val modifiers: ULong,
     val unicodeString: String? = null,
 )
+
+private data class ActionStats(
+    private val map: MutableMap<KeyboardAction, Int> = mutableMapOf(),
+) {
+    fun recordAction(action: KeyboardAction) {
+        map[action] = (map[action] ?: 0) + 1
+        print()
+    }
+
+    private fun print() {
+        println("---")
+        map.forEach { println(it) }
+        println("---")
+    }
+}
