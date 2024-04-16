@@ -79,8 +79,7 @@ fun callback(
                 keyCode = keyCode,
                 keyboardType = keyboardType,
                 modifiers = flags,
-                unicodeString = Char.toChars(unicodeString.value.convert())
-                    .concatToString()
+                unicodeCodePoint = unicodeString.value
             )
         }
         stats?.recordAction(action)
@@ -89,12 +88,18 @@ fun callback(
     return event
 }
 
+@OptIn(ExperimentalNativeApi::class)
 private data class KeyboardAction(
     val keyCode: Long,
     val keyboardType: Long,
     val modifiers: ULong,
-    val unicodeString: String? = null,
-)
+    val unicodeCodePoint: UShort,
+) {
+    fun getUnicodeString(): String {
+        return Char.toChars(unicodeCodePoint.convert())
+            .concatToString()
+    }
+}
 
 private data class ActionStats(
     private val map: MutableMap<KeyboardAction, Int> = mutableMapOf(),
