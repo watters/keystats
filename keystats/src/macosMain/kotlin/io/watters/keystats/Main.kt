@@ -54,7 +54,7 @@ fun callback(
     event: CGEventRef?,
     refcon: COpaquePointer?,
 ): CGEventRef? {
-    if (type == kCGEventKeyDown || type == kCGEventFlagsChanged) {
+    if (type == kCGEventKeyDown) {
 
         val flags = CGEventGetFlags(event)
 
