@@ -1,14 +1,44 @@
 package io.watters.keystats
 
 import kotlinx.cinterop.*
+import platform.AppKit.*
 import platform.CoreFoundation.*
 import platform.CoreGraphics.*
+import platform.Foundation.NSMakeRect
+import platform.Foundation.NSNotification
+import platform.Foundation.NSProcessInfo
+import platform.darwin.NSObject
 import platform.darwin.UniCharCountVar
 import platform.darwin.UniCharVar
 import platform.posix.exit
 import kotlin.experimental.ExperimentalNativeApi
 
-fun main() {
+class AppDelegate : NSApplicationDelegateProtocol, NSObject() {
+    lateinit var window: NSWindow
+    lateinit var controller: NSViewController
+
+    override fun applicationDidFinishLaunching(notification: NSNotification) {
+        val windowMask = NSWindowStyleMaskTitled or NSWindowStyleMaskClosable
+        window =
+            NSWindow(
+                NSMakeRect(
+                    0.0,
+                    0.0,
+                    700.0,
+                    450.0
+                ), windowMask, 2.convert(), false
+            )
+        window.title = NSProcessInfo.processInfo.processName
+        controller = NSViewController()
+        window.contentView?.addSubview(controller.view)
+
+        window.makeKeyAndOrderFront(null)
+
+        registerEventTap()
+    }
+}
+
+fun registerEventTap() {
     /* https://developer.apple.com/documentation/coregraphics/quartz_event_services */
 
     // https://developer.apple.com/documentation/coregraphics/cgeventmask
